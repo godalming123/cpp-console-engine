@@ -1,10 +1,13 @@
 #include <sys/ioctl.h> // to get terminal size
 #include <iostream>    // for cout (print to console)
 #include <string>      // for u16 string class
-#include <cmath>       // to round (and floor), absolute and copysign operations
+#include <cmath>       // to round, floor, ceil, absolute and copysign operations
 #include <codecvt>     // to convert u16 string to u8 string for printing
 #include <locale>      // to convert u16 string to u8 string for printing
-//#include <chrono>      // for time it takes code to run
+#include <unistd.h>    // to sleep (and usleep)
+#include <vector>      // for vectors
+#include <ctime>       // for current time of day
+#include <array>       // for arrays
 
 using namespace std;
 
@@ -19,10 +22,33 @@ int calculateCharToSet(int x, int y, bool normaliseX, bool normaliseY, struct wi
 		: -1; // otherwise return -1 which tells our program that the pixel is out of bounds
 }
 
+vector <array<int, 2>> getPointsForEighthCircle(int radius) {
+	int x = 0;
+	int y = radius;
+	int d = 3 - 2*radius;
+	vector<std::array<int, 2>> coOrds;
+	coOrds.push_back( {x, y} );
+
+	while (y > x) {
+		// increment x
+		x++;
+
+		// check for decision parameter and correspondingly update d, x, y
+		if (d > 0) {
+			y--;
+			d += 4*(x-y) + 10;
+		} else {
+			d += 4*x + 6;
+		}
+
+		coOrds.push_back( {x, y} );
+	}
+
+	return coOrds;
+}
+
 class screen {
 	private:
-		u16string _contents;
-		u16string _originalContents; // in case we need to quickly reset the screen
 		int _noOfScreenChars;
 		int _changeYtoNormalise;
 		int _changeXtoNormalise;
@@ -31,24 +57,26 @@ class screen {
 		screen(){
 			initialiseSize();
 		}
+		
+		u16string _contents;
+		int _smallestDimensionSize;
 
 		void initialiseSize(){	
 			ioctl(0, TIOCGWINSZ, &_termSize);
-			_termSize.ws_row -= 1; // make the screen 1 line less so the terminal prompt and screen display can show
+			_termSize.ws_row -= 2; // make the screen 2 line less so the terminal prompt and time and screen display can show
 			_noOfScreenChars = _termSize.ws_row * _termSize.ws_col;
+			switch (_termSize.ws_row < _termSize.ws_col) {
+				case true: _smallestDimensionSize = _termSize.ws_row; break;
+				case false: _smallestDimensionSize = _termSize.ws_col; break;
+			}
 			_changeXtoNormalise = floor(_termSize.ws_col/2); // the amount of charecters needed to normalise the screen (so 0, 0 is the centre) in X
 			_changeYtoNormalise = floor(_termSize.ws_row/2); // the amount of charecters needed to normalise the screen (so 0, 0 is the centre) in Y
 			_contents = std::u16string(_noOfScreenChars, u' ');
-			_originalContents = _contents;
-		}
-
-		void reset(){
-			_contents = _originalContents;
 		}
 
 		void printMe() {
 			wstring_convert<codecvt_utf8<char16_t>, char16_t> converter;
-			cout << converter.to_bytes(_contents);
+			cout << converter.to_bytes(_contents) << endl;
 		}
 
 		void drawText(int x, int y, u16string text, bool normaliseTextX, bool normaliseTextY) {
@@ -187,20 +215,90 @@ class screen {
 		}
 };
 
+array<int, 2> calculatePixel(vector<array<int, 2>> pointsForEighth, int pointForCircle, bool clockwise) {
+	int pointOn = pointForCircle % (pointsForEighth.size()-1);
+	int eighthOn = floor(pointForCircle / (pointsForEighth.size()-1));
+	
+	if (clockwise) {
+		switch (eighthOn) {
+			case 7: return {-pointsForEighth[pointsForEighth.size() - 1 - pointOn][0], -pointsForEighth[pointsForEighth.size() - 1 - pointOn][1]}; break;
+			case 6: return {-pointsForEighth[                             pointOn][1], -pointsForEighth[                             pointOn][0]}; break;
+			case 5: return {-pointsForEighth[pointsForEighth.size() - 1 - pointOn][1],  pointsForEighth[pointsForEighth.size() - 1 - pointOn][0]}; break;
+			case 4: return {-pointsForEighth[                             pointOn][0],  pointsForEighth[                             pointOn][1]}; break;
+			case 3: return { pointsForEighth[pointsForEighth.size() - 1 - pointOn][0],  pointsForEighth[pointsForEighth.size() - 1 - pointOn][1]}; break;
+			case 2: return { pointsForEighth[                             pointOn][1],  pointsForEighth[                             pointOn][0]}; break;
+			case 1: return { pointsForEighth[pointsForEighth.size() - 1 - pointOn][1], -pointsForEighth[pointsForEighth.size() - 1 - pointOn][0]}; break;
+			case 0: return { pointsForEighth[                             pointOn][0], -pointsForEighth[                             pointOn][1]}; break;
+
+		}
+	}
+	else {
+		switch (eighthOn) {
+			case 0: return {-pointsForEighth[                             pointOn][0], -pointsForEighth[                             pointOn][1]}; break;
+			case 1: return {-pointsForEighth[pointsForEighth.size() - 1 - pointOn][1], -pointsForEighth[pointsForEighth.size() - 1 - pointOn][0]}; break;
+			case 2: return {-pointsForEighth[                             pointOn][1],  pointsForEighth[                             pointOn][0]}; break;
+			case 3: return {-pointsForEighth[pointsForEighth.size() - 1 - pointOn][0],  pointsForEighth[pointsForEighth.size() - 1 - pointOn][1]}; break;
+			case 4: return { pointsForEighth[                             pointOn][0],  pointsForEighth[                             pointOn][1]}; break;
+			case 5: return { pointsForEighth[pointsForEighth.size() - 1 - pointOn][1],  pointsForEighth[pointsForEighth.size() - 1 - pointOn][0]}; break;
+			case 6: return { pointsForEighth[                             pointOn][1], -pointsForEighth[                             pointOn][0]}; break;
+			case 7: return { pointsForEighth[pointsForEighth.size() - 1 - pointOn][0], -pointsForEighth[pointsForEighth.size() - 1 - pointOn][1]}; break;
+		}
+	}
+
+}
+
 int main() {
 	screen myScreen;
+	
+	myScreen.drawText(0, 1, u"CLOCK", true, false);
+	myScreen.drawCircle(0, 0, floor(myScreen._smallestDimensionSize/2), u'█', 3, true, true);
+	u16string clockStyle = myScreen._contents;
 
-	myScreen.bresignham3D(10, 20, 0, 0, 0, 0, u'█', true, true);
-	myScreen.bresignham3D(-30, 30, 0, 0, 0, 0, u'█', true, true);
+	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen._smallestDimensionSize/2.7));
+	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen._smallestDimensionSize/3.2));
+	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen._smallestDimensionSize/4));
 
-	myScreen.drawCircle(0, 0, 50, u'█', 3, true, true);
+	array<int, 2> pixelForHour;
+	array<int, 2> pixelForMinute;
+	array<int, 2> pixelForSecond;
 
-	myScreen.drawText(0, 0, u"CLOCK", true, false);
+	struct tm * timeInfo;
 
-	myScreen.setPix(-1, 0, u'(', true, true);
-	myScreen.setPix( 1, 0, u')', true, true);
+	while (true) {
+		// get current time
+		time_t now = time(0);
+		timeInfo = localtime ( &now );
+		
+		// calculate the piont we need for current time
+		int secondOn = floor((timeInfo->tm_sec)  * (pointsForEighthOfSecond.size() - 1) / 7.5);
+		int minuteOn = floor((timeInfo->tm_min)  * (pointsForEighthOfMinute.size() - 1) / 7.5);
+		int hourOn   = floor((timeInfo->tm_hour % 12) * (pointsForEighthOfHour.size() - 1) / 1.5);
 
-	myScreen.printMe();
+		// calculate the pixel for the hands
+		pixelForSecond = calculatePixel(pointsForEighthOfSecond, secondOn, true);
+		pixelForMinute = calculatePixel(pointsForEighthOfMinute, minuteOn, true);
+		pixelForHour = calculatePixel(pointsForEighthOfHour, hourOn, true);
+		
+		// draw the hands
+		myScreen.bresignham3D(0, 0, 0, pixelForSecond[0], pixelForSecond[1], 0, u'█', true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForMinute[0], pixelForMinute[1], 0, u'#', true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForHour  [0], pixelForHour  [1], 0, u'=', true, true);
+
+		// print and reset screen
+		myScreen.printMe();
+		myScreen._contents = clockStyle;
+
+		// print time
+		cout << timeInfo->tm_hour;
+		cout << ":";
+		cout << timeInfo->tm_min;
+		cout << ":";
+		cout << timeInfo->tm_sec;
+		cout << endl;
+		
+		//pause
+		usleep(500000);
+	}
 
 	return 0;
 }
