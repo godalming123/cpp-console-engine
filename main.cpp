@@ -265,13 +265,13 @@ array<int, 2> calculatePixel(vector<array<int, 2>> pointsForEighth, int pointFor
 int main() {
 	Screen myScreen(-1, u'`'); // make the Screen 1 line less so the terminal prompt can show
 	
-	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize/1.1), u'█', 3, true, true);
+	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize * 0.9), u'█', 3, true, true);
 	myScreen.drawText(0, 0, u"CLOCK", true, false);
 	u16string clockStyle = myScreen.contents;
 
-	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/1.35));
-	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/1.6));
-	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/2));
+	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.75));
+	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.63));
+	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.5));
 
 	array<int, 2> pixelForHour;
 	array<int, 2> pixelForMinute;
