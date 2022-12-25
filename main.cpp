@@ -11,23 +11,11 @@
 
 using namespace std;
 
-// Calculates the index of the charecter in the screen's contents to be set as if it is a 2d plane
-int calculateCharToSet(int x, int y, bool normaliseX, bool normaliseY, struct winsize termSize, int changeXtoNormalise, int changeYtoNormalise) {
-	x *= 2; // double x because 1 char is double as tall as it is wide so 2 charecters makes a sqaure pixel
-	
-	if (normaliseY) y += changeYtoNormalise; // normalise the pixels - so (0, 0) is the center of the Screen
-	if (normaliseX) x += changeXtoNormalise; // normalise the pixels - so (0, 0) is the center of the Screen
-
-	return ((0 <= x) && (x < termSize.ws_col) && (0 <= y) && (y < termSize.ws_row)) // if our pixel is within Screen bounds
-		? (y * termSize.ws_col) + x // then return the chareceter we should set
-		: -1; // otherwise return -1 which tells our program that the pixel is out of bounds
-}
-
 // Returns an array for the pionts in an eighth of a circle
-vector <array<int, 2>> getPointsForEighthCircle(int radius) {
+vector <array<int, 2>> getPointsForEighthCircle(int circumference) {
 	int x = 0;
-	int y = radius;
-	int d = 3 - 2*radius;
+	int y = floor(circumference/2);
+	int d = 3 - circumference;
 	vector<std::array<int, 2>> coOrds;
 	coOrds.push_back( {x, y} );
 
@@ -55,28 +43,26 @@ vector <array<int, 2>> getPointsForEighthCircle(int radius) {
 class Screen {
 	private:
 		int _noOfScreenChars;
-		int _changeYtoNormalise;
 		int _changeXtoNormalise;
 		struct winsize _termSize;
 	public:
-		Screen(int changeHeight){
-			initialiseSize(changeHeight);
+		Screen(int changeHeight, char16_t blankContentsChar){
+			initialiseSize(changeHeight, blankContentsChar);
 		}
 		
 		u16string contents;
 		int smallestDimensionSize;
 
-		void initialiseSize(int changeHeight){	
+		void initialiseSize(int changeHeight, char16_t blankContentsChar){
 			ioctl(0, TIOCGWINSZ, &_termSize);
 			_termSize.ws_row += changeHeight; // in some cases you need to change the height of the screen
 			_noOfScreenChars = _termSize.ws_row * _termSize.ws_col;
-			switch (_termSize.ws_row < _termSize.ws_col) {
-				case true: smallestDimensionSize = _termSize.ws_row; break;
+			switch (_termSize.ws_row*2 < _termSize.ws_col) {
+				case true: smallestDimensionSize = _termSize.ws_row*2; break;
 				case false: smallestDimensionSize = _termSize.ws_col; break;
 			}
 			_changeXtoNormalise = floor(_termSize.ws_col/2); // the amount of charecters needed to normalise the Screen (so 0, 0 is the centre) in X
-			_changeYtoNormalise = floor(_termSize.ws_row/2); // the amount of charecters needed to normalise the Screen (so 0, 0 is the centre) in Y
-			contents = std::u16string(_noOfScreenChars, u' ');
+			contents = std::u16string(_noOfScreenChars, blankContentsChar);
 		}
 
 		void printMe() {
@@ -85,28 +71,56 @@ class Screen {
 		}
 
 		void drawText(int x, int y, u16string text, bool normaliseTextX, bool normaliseTextY) {
-			int charToSet = calculateCharToSet(x, y, normaliseTextX, normaliseTextY, _termSize, _changeXtoNormalise, _changeYtoNormalise);
+      // normalise the pixels - so (0, 0) is the center of the Screen
+			if (normaliseTextY) y += _termSize.ws_row; // in y
+	    if (normaliseTextX) x += _changeXtoNormalise; // in x
+      
+      // divide y by 2 because pixels have an upper and lower half
+      y /= 2;
 
-			if (normaliseTextX)
-				charToSet -= round(text.length()/2);
-
-			if (charToSet != -1) {// if char to set is not -1 (the number used when a pixel will not fit on the Screen)
-				contents.replace(charToSet, text.length(), text); // then set our Screen pixel
+      // if pixel is within screen bounds, then draw the text
+			if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
+        int charToSet = (y * _termSize.ws_col) + x;
+			  if (normaliseTextX)
+				  charToSet -= round(text.length()/2);
+				contents.replace(charToSet, text.length(), text); // then set our Screen text
 			}
 		}
 
 		void setPix(int x, int y, char16_t charecter, bool normalisePixelX, bool normalisePixelY) {
-			int charToSet = calculateCharToSet(x, y, normalisePixelX, normalisePixelY, _termSize, _changeXtoNormalise, _changeYtoNormalise);
+      // normalise the pixels - so (0, 0) is the center of the Screen
+			if (normalisePixelY) y += _termSize.ws_row; // in y
+	    if (normalisePixelX) x += _changeXtoNormalise; // in x
 
-			if (charToSet != -1) {// if char to set is not -1 (the number used when a pixel will not fit the Screen)
-				// then set our Screen pixel
-				contents[charToSet] = charecter;
-				contents[charToSet + 1] = charecter;
-			}
+      // calculate if pixel is on lower or upper half
+      bool lower = ((y % 2) == 1);
+
+      // divide y by 2 since pixels have an upper and lower half
+      y = floor(y/2);
+
+      // if pixel is within screen bounds, then draw the pixel
+      if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
+        int charToSet = (y * _termSize.ws_col) + x;
+
+			  if (lower) {
+          switch (contents[charToSet]) {
+            case u'▀': contents[charToSet] = u'█'; break;
+            case u'█': break;
+            default: contents[charToSet] = u'▄'; break;
+          }
+        } else {
+          switch (contents[charToSet]) {
+            case u'▄': contents[charToSet] = u'█'; break;
+            case u'█': break;
+            default: contents[charToSet] = u'▀'; break;
+          }
+			  }
+      }
 		}
 
+    // draws 8 pixels of a circle from 1 pixel
+    // see: https://lectureloops.com/wp-content/uploads/2021/01/image-5.png
 		void drawCirclePixel(int originx, int originy, int xc, int yc, char16_t charecter, bool normaliseX, bool normaliseY) {
-			// draws 8 pixels of a circle from 1 pixel see https://lectureloops.com/wp-content/uploads/2021/01/image-5.png explaining this process
 			setPix(originx + xc, originy + yc, charecter, normaliseX, normaliseY);
 			setPix(originx + xc, originy - yc, charecter, normaliseX, normaliseY);
 			setPix(originx - xc, originy + yc, charecter, normaliseX, normaliseY);
@@ -117,10 +131,10 @@ class Screen {
 			setPix(originx - yc, originy - xc, charecter, normaliseX, normaliseY);
 		}
 
-		void drawCircle(int centerx, int centery, int radius, char16_t charecter, int thickness, bool normaliseCircleX, bool normaliseCircleY) {
+		void drawCircle(int centerx, int centery, int diameter, char16_t charecter, int thickness, bool normaliseCircleX, bool normaliseCircleY) {
 			int x;
-			int y = radius;
-			int d = 3 - 2*radius;
+			int y = floor(diameter/2);
+			int d = 3 - diameter;
 
 			drawCirclePixel(centerx, centery, x, y, charecter, normaliseCircleX, normaliseCircleY);
 
@@ -250,15 +264,15 @@ array<int, 2> calculatePixel(vector<array<int, 2>> pointsForEighth, int pointFor
 }
 
 int main() {
-	Screen myScreen(-2); // make the Screen 2 lines less so the terminal prompt and time and Screen display can show
+	Screen myScreen(-1, u'`'); // make the Screen 1 line less so the terminal prompt can show
 	
-	myScreen.drawText(0, 1, u"CLOCK", true, false);
-	myScreen.drawCircle(0, 0, floor((myScreen.smallestDimensionSize-1)/2), u'█', 3, true, true);
+	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize/1.1), u'█', 3, true, true);
+  myScreen.drawText(0, 0, u"CLOCK", true, false);
 	u16string clockStyle = myScreen.contents;
 
-	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/2.7));
-	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/3.2));
-	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/4));
+	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/1.35));
+	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/1.6));
+	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/2));
 
 	array<int, 2> pixelForHour;
 	array<int, 2> pixelForMinute;
@@ -289,14 +303,6 @@ int main() {
 		// print and reset Screen
 		myScreen.printMe();
 		myScreen.contents = clockStyle;
-
-		// print time
-		cout << timeInfo->tm_hour;
-		cout << ":";
-		cout << timeInfo->tm_min;
-		cout << ":";
-		cout << timeInfo->tm_sec;
-		cout << endl;
 		
 		//pause
 		usleep(500000);
