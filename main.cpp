@@ -71,55 +71,55 @@ class Screen {
 		}
 
 		void drawText(int x, int y, u16string text, bool normaliseTextX, bool normaliseTextY) {
-      // normalise the pixels - so (0, 0) is the center of the Screen
+			// normalise the pixels - so (0, 0) is the center of the Screen
 			if (normaliseTextY) y += _termSize.ws_row; // in y
-	    if (normaliseTextX) x += _changeXtoNormalise; // in x
+			if (normaliseTextX) x += _changeXtoNormalise; // in x
       
-      // divide y by 2 because pixels have an upper and lower half
-      y /= 2;
+			// divide y by 2 because pixels have an upper and lower half
+			y /= 2;
 
-      // if pixel is within screen bounds, then draw the text
+			// if pixel is within screen bounds, then draw the text
 			if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
-        int charToSet = (y * _termSize.ws_col) + x;
-			  if (normaliseTextX)
-				  charToSet -= round(text.length()/2);
+				int charToSet = (y * _termSize.ws_col) + x;
+				if (normaliseTextX)
+					charToSet -= round(text.length()/2);
 				contents.replace(charToSet, text.length(), text); // then set our Screen text
 			}
 		}
 
 		void setPix(int x, int y, char16_t charecter, bool normalisePixelX, bool normalisePixelY) {
-      // normalise the pixels - so (0, 0) is the center of the Screen
+			// normalise the pixels - so (0, 0) is the center of the Screen
 			if (normalisePixelY) y += _termSize.ws_row; // in y
-	    if (normalisePixelX) x += _changeXtoNormalise; // in x
+			if (normalisePixelX) x += _changeXtoNormalise; // in x
 
-      // calculate if pixel is on lower or upper half
-      bool lower = ((y % 2) == 1);
+			// calculate if pixel is on lower or upper half
+			bool lower = ((y % 2) == 1);
 
-      // divide y by 2 since pixels have an upper and lower half
-      y = floor(y/2);
+			// divide y by 2 since pixels have an upper and lower half
+			y = floor(y/2);
 
-      // if pixel is within screen bounds, then draw the pixel
-      if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
-        int charToSet = (y * _termSize.ws_col) + x;
+			// if pixel is within screen bounds, then draw the pixel
+			if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
+				int charToSet = (y * _termSize.ws_col) + x;
 
-			  if (lower) {
-          switch (contents[charToSet]) {
-            case u'▀': contents[charToSet] = u'█'; break;
-            case u'█': break;
-            default: contents[charToSet] = u'▄'; break;
-          }
-        } else {
-          switch (contents[charToSet]) {
-            case u'▄': contents[charToSet] = u'█'; break;
-            case u'█': break;
-            default: contents[charToSet] = u'▀'; break;
-          }
-			  }
-      }
+				if (lower) {
+					switch (contents[charToSet]) {
+						case u'▀': contents[charToSet] = u'█'; break;
+						case u'█': break;
+						default: contents[charToSet] = u'▄'; break;
+					}
+				} else {
+					switch (contents[charToSet]) {
+						case u'▄': contents[charToSet] = u'█'; break;
+						case u'█': break;
+						default: contents[charToSet] = u'▀'; break;
+					}
+				}
+			}
 		}
 
-    // draws 8 pixels of a circle from 1 pixel
-    // see: https://lectureloops.com/wp-content/uploads/2021/01/image-5.png
+		// draws 8 pixels of a circle from 1 pixel
+		// see: https://lectureloops.com/wp-content/uploads/2021/01/image-5.png
 		void drawCirclePixel(int originx, int originy, int xc, int yc, char16_t charecter, bool normaliseX, bool normaliseY) {
 			setPix(originx + xc, originy + yc, charecter, normaliseX, normaliseY);
 			setPix(originx + xc, originy - yc, charecter, normaliseX, normaliseY);
@@ -260,14 +260,13 @@ array<int, 2> calculatePixel(vector<array<int, 2>> pointsForEighth, int pointFor
 			case 7: return { pointsForEighth[pointsForEighth.size() - 1 - pointOn][0], -pointsForEighth[pointsForEighth.size() - 1 - pointOn][1]}; break;
 		}
 	}
-
 }
 
 int main() {
 	Screen myScreen(-1, u'`'); // make the Screen 1 line less so the terminal prompt can show
 	
 	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize/1.1), u'█', 3, true, true);
-  myScreen.drawText(0, 0, u"CLOCK", true, false);
+	myScreen.drawText(0, 0, u"CLOCK", true, false);
 	u16string clockStyle = myScreen.contents;
 
 	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize/1.35));
