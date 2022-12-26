@@ -122,13 +122,13 @@ class Screen {
 						switch (contents[charToSet]) {
 							case u' ': break;
 							case u'▄': contents[charToSet] = u' '; break;
-							default: contents[charToSet] = u' '; break;
+							default: contents[charToSet] = u'▀'; break;
 						}
 					} else {
 						switch (contents[charToSet]) {
 							case u' ': break;
 							case u'▀': contents[charToSet] = u' '; break;
-							default: contents[charToSet] = u' '; break;
+							default: contents[charToSet] = u'▄'; break;
 						}
 					}
 				}
@@ -280,9 +280,10 @@ array<int, 2> calculatePixel(vector<array<int, 2>> pointsForEighth, int pointFor
 }
 
 int main() {
-	Screen myScreen(-1, u'`'); // make the Screen 1 line less so the terminal prompt can show
+	Screen myScreen(-1, u'.'); // make the Screen 1 line less so the terminal prompt can show
+	bool newPixelsAreOn = true;
 	
-	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize * 0.9), true, true, true);
+	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize * 0.9), newPixelsAreOn, true, true);
 	myScreen.drawText(0, 0, u"CLOCK", true, false);
 	u16string clockStyle = myScreen.contents;
 
@@ -312,9 +313,9 @@ int main() {
 		pixelForHour = calculatePixel(pointsForEighthOfHour, hourOn, true);
 		
 		// draw the hands
-		myScreen.bresignham3D(0, 0, 0, pixelForSecond[0], pixelForSecond[1], 0, true, true, true);
-		myScreen.bresignham3D(0, 0, 0, pixelForMinute[0], pixelForMinute[1], 0, true, true, true);
-		myScreen.bresignham3D(0, 0, 0, pixelForHour  [0], pixelForHour  [1], 0, true, true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForSecond[0], pixelForSecond[1], 0, newPixelsAreOn, true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForMinute[0], pixelForMinute[1], 0, newPixelsAreOn, true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForHour  [0], pixelForHour  [1], 0, newPixelsAreOn, true, true);
 
 		// print and reset Screen
 		myScreen.printMe();
