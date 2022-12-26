@@ -12,10 +12,10 @@
 using namespace std;
 
 // Returns an array for the pionts in an eighth of a circle
-vector <array<int, 2>> getPointsForEighthCircle(int circumference) {
+vector <array<int, 2>> getPointsForEighthCircle(int diameter) {
 	int x = 0;
-	int y = floor(circumference/2);
-	int d = 3 - circumference;
+	int y = floor(diameter/2);
+	int d = 3 - diameter;
 	vector<std::array<int, 2>> coOrds;
 	coOrds.push_back( {x, y} );
 
@@ -46,14 +46,14 @@ class Screen {
 		int _changeXtoNormalise;
 		struct winsize _termSize;
 	public:
-		Screen(int changeHeight, char16_t blankContentsChar){
+		Screen(int changeHeight, char16_t blankContentsChar) {
 			initialiseSize(changeHeight, blankContentsChar);
 		}
 		
 		u16string contents;
 		int smallestDimensionSize;
 
-		void initialiseSize(int changeHeight, char16_t blankContentsChar){
+		void initialiseSize(int changeHeight, char16_t blankContentsChar) {
 			ioctl(0, TIOCGWINSZ, &_termSize);
 			_termSize.ws_row += changeHeight; // in some cases you need to change the height of the screen
 			_noOfScreenChars = _termSize.ws_row * _termSize.ws_col;
@@ -82,12 +82,12 @@ class Screen {
 			if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
 				int charToSet = (y * _termSize.ws_col) + x;
 				if (normaliseTextX)
-					charToSet -= round(text.length()/2);
+					charToSet -= floor(text.length()/2);
 				contents.replace(charToSet, text.length(), text); // then set our Screen text
 			}
 		}
 
-		void setPix(int x, int y, char16_t charecter, bool normalisePixelX, bool normalisePixelY) {
+		void setPix(int x, int y, bool isOn, bool normalisePixelX, bool normalisePixelY) {
 			// normalise the pixels - so (0, 0) is the center of the Screen
 			if (normalisePixelY) y += _termSize.ws_row; // in y
 			if (normalisePixelX) x += _changeXtoNormalise; // in x
@@ -101,18 +101,35 @@ class Screen {
 			// if pixel is within screen bounds, then draw the pixel
 			if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
 				int charToSet = (y * _termSize.ws_col) + x;
-
-				if (lower) {
-					switch (contents[charToSet]) {
-						case u'▀': contents[charToSet] = u'█'; break;
-						case u'█': break;
-						default: contents[charToSet] = u'▄'; break;
+				
+				if (isOn) {
+					if (lower) {
+						switch (contents[charToSet]) {
+							case u'█': break;
+							case u'▀': contents[charToSet] = u'█'; break;
+							default: contents[charToSet] = u'▄'; break;
+						}
+					} else {
+						switch (contents[charToSet]) {
+							case u'█': break;
+							case u'▄': contents[charToSet] = u'█'; break;
+							default: contents[charToSet] = u'▀'; break;
+						}
 					}
-				} else {
-					switch (contents[charToSet]) {
-						case u'▄': contents[charToSet] = u'█'; break;
-						case u'█': break;
-						default: contents[charToSet] = u'▀'; break;
+				}
+				else {
+					if (lower) {
+						switch (contents[charToSet]) {
+							case u' ': break;
+							case u'▄': contents[charToSet] = u' '; break;
+							default: contents[charToSet] = u' '; break;
+						}
+					} else {
+						switch (contents[charToSet]) {
+							case u' ': break;
+							case u'▀': contents[charToSet] = u' '; break;
+							default: contents[charToSet] = u' '; break;
+						}
 					}
 				}
 			}
@@ -120,23 +137,23 @@ class Screen {
 
 		// draws 8 pixels of a circle from 1 pixel
 		// see: https://lectureloops.com/wp-content/uploads/2021/01/image-5.png
-		void drawCirclePixel(int originx, int originy, int xc, int yc, char16_t charecter, bool normaliseX, bool normaliseY) {
-			setPix(originx + xc, originy + yc, charecter, normaliseX, normaliseY);
-			setPix(originx + xc, originy - yc, charecter, normaliseX, normaliseY);
-			setPix(originx - xc, originy + yc, charecter, normaliseX, normaliseY);
-			setPix(originx - xc, originy - yc, charecter, normaliseX, normaliseY);
-			setPix(originx + yc, originy + xc, charecter, normaliseX, normaliseY);
-			setPix(originx + yc, originy - xc, charecter, normaliseX, normaliseY);
-			setPix(originx - yc, originy + xc, charecter, normaliseX, normaliseY);
-			setPix(originx - yc, originy - xc, charecter, normaliseX, normaliseY);
+		void drawCirclePixel(int originx, int originy, int xc, int yc, bool isOn, bool normaliseX, bool normaliseY) {
+			setPix(originx + xc, originy + yc, isOn, normaliseX, normaliseY);
+			setPix(originx + xc, originy - yc, isOn, normaliseX, normaliseY);
+			setPix(originx - xc, originy + yc, isOn, normaliseX, normaliseY);
+			setPix(originx - xc, originy - yc, isOn, normaliseX, normaliseY);
+			setPix(originx + yc, originy + xc, isOn, normaliseX, normaliseY);
+			setPix(originx + yc, originy - xc, isOn, normaliseX, normaliseY);
+			setPix(originx - yc, originy + xc, isOn, normaliseX, normaliseY);
+			setPix(originx - yc, originy - xc, isOn, normaliseX, normaliseY);
 		}
 
-		void drawCircle(int centerx, int centery, int diameter, char16_t charecter, int thickness, bool normaliseCircleX, bool normaliseCircleY) {
-			int x;
+		void drawCircle(int centerx, int centery, int diameter, bool isOn, bool normaliseCircleX, bool normaliseCircleY) {
+			int x = 0;
 			int y = floor(diameter/2);
 			int d = 3 - diameter;
 
-			drawCirclePixel(centerx, centery, x, y, charecter, normaliseCircleX, normaliseCircleY);
+			drawCirclePixel(centerx, centery, x, y, isOn, normaliseCircleX, normaliseCircleY);
 
 			while (y >= x) {
 				// increment x
@@ -151,11 +168,11 @@ class Screen {
 				}
 
 				// draw 8 pixels of the circle
-				drawCirclePixel(centerx, centery, x, y, charecter, normaliseCircleX, normaliseCircleY);
+				drawCirclePixel(centerx, centery, x, y, isOn, normaliseCircleX, normaliseCircleY);
 			}
 		}
 		
-		void bresignham3D(int x1, int y1, int z1, int x2, int y2, int z2, char16_t newChar, bool normaliseX, bool normaliseY) {
+		void bresignham3D(int x1, int y1, int z1, int x2, int y2, int z2, bool isOn, bool normaliseX, bool normaliseY) {
 			int dx = abs(x1 - x2);
 			int dy = abs(y1 - y2);
 			int dz = abs(z1 - z2);
@@ -167,7 +184,7 @@ class Screen {
 			int p2;
 
 			if (dx >= dy & dx >= dz) { // Driving axis is X-axis"
-				setPix(x1, y1, newChar, normaliseX, normaliseY);
+				setPix(x1, y1, isOn, normaliseX, normaliseY);
 
 				p1 = 2*dy - dx;
 				p2 = 2*dz - dx;
@@ -183,10 +200,10 @@ class Screen {
 					}
 					p1 += 2 * dy;
 					p2 += 2 * dz;
-					setPix(x1, y1, newChar, normaliseX, normaliseY);
+					setPix(x1, y1, isOn, normaliseX, normaliseY);
 				}
 			} else if (dy >= dx & dy >= dz) { // Driving axis is Y axis
-				setPix(x1, y1, newChar, normaliseX, normaliseY);
+				setPix(x1, y1, isOn, normaliseX, normaliseY);
 
 				p1 = 2*dx - dy;
 				p2 = 2*dz - dy;
@@ -202,10 +219,10 @@ class Screen {
 					}
 					p1 += 2 * dx;
 					p2 += 2 * dz;
-					setPix(x1, y1, newChar, normaliseX, normaliseY);
+					setPix(x1, y1, isOn, normaliseX, normaliseY);
 				}
 			} else if (dz >= dx & dz >= dy) { // Driving axis is Z-axis"
-				setPix(x1, y1, newChar, normaliseX, normaliseY);
+				setPix(x1, y1, isOn, normaliseX, normaliseY);
 
 				p1 = 2*dy - dz;
 				p2 = 2*dx - dz;
@@ -221,7 +238,7 @@ class Screen {
 					}
 					p1 += 2 * dy;
 					p2 += 2 * dx;
-					setPix(x1, y1, newChar, normaliseX, normaliseY);
+					setPix(x1, y1, isOn, normaliseX, normaliseY);
 				}
 			} else {
 				cout << "Could not find the driving axis";
@@ -265,7 +282,7 @@ array<int, 2> calculatePixel(vector<array<int, 2>> pointsForEighth, int pointFor
 int main() {
 	Screen myScreen(-1, u'`'); // make the Screen 1 line less so the terminal prompt can show
 	
-	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize * 0.9), u'█', 3, true, true);
+	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize * 0.9), true, true, true);
 	myScreen.drawText(0, 0, u"CLOCK", true, false);
 	u16string clockStyle = myScreen.contents;
 
@@ -295,9 +312,9 @@ int main() {
 		pixelForHour = calculatePixel(pointsForEighthOfHour, hourOn, true);
 		
 		// draw the hands
-		myScreen.bresignham3D(0, 0, 0, pixelForSecond[0], pixelForSecond[1], 0, u'█', true, true);
-		myScreen.bresignham3D(0, 0, 0, pixelForMinute[0], pixelForMinute[1], 0, u'#', true, true);
-		myScreen.bresignham3D(0, 0, 0, pixelForHour  [0], pixelForHour  [1], 0, u'=', true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForSecond[0], pixelForSecond[1], 0, true, true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForMinute[0], pixelForMinute[1], 0, true, true, true);
+		myScreen.bresignham3D(0, 0, 0, pixelForHour  [0], pixelForHour  [1], 0, true, true, true);
 
 		// print and reset Screen
 		myScreen.printMe();
