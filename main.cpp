@@ -8,6 +8,7 @@
 #include <vector>      // for vectors
 #include <ctime>       // for current time of day
 #include <array>       // for arrays
+#include <sstream>     // for string streams
 
 using namespace std;
 
@@ -77,14 +78,23 @@ class Screen {
       
 			// divide y by 2 because pixels have an upper and lower half
 			y /= 2;
-
-			// if pixel is within screen bounds, then draw the text
-			if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
-				int charToSet = (y * _termSize.ws_col) + x;
-				if (normaliseTextX)
-					charToSet -= floor(text.length()/2);
-				contents.replace(charToSet, text.length(), text); // then set our Screen text
+			
+			// loop through every line of text
+			std::basic_istringstream<char16_t> ss(text);
+			for (std::u16string line; std::getline(ss, line, u'\n');) {
+				// if line is within screen bounds, then draw the line
+				if ((0 <= x) && (x < _termSize.ws_col) && (0 <= y) && (y < _termSize.ws_row)) {
+					int charToSet = (y * _termSize.ws_col) + x; // calculate char to set
+					if (normaliseTextX) // adjust char to set to take into acount text centering
+						charToSet -= floor(line.length()/2);
+					contents.replace(charToSet, line.length(), line); // then set our Screen text
+				}
+				y++; // increment y as we have a new line of text
 			}
+		}
+
+		void moveText(int x1, int y1, int x2, int y2, int width, int height) {
+			// will work on this next
 		}
 
 		void setPix(int x, int y, bool isOn, bool normalisePixelX, bool normalisePixelY) {
@@ -283,13 +293,17 @@ int main() {
 	Screen myScreen(-1, u'.'); // make the Screen 1 line less so the terminal prompt can show
 	bool newPixelsAreOn = true;
 	
-	myScreen.drawCircle(0, 0, round(myScreen.smallestDimensionSize * 0.9), newPixelsAreOn, true, true);
-	myScreen.drawText(0, 0, u"CLOCK", true, false);
+	myScreen.drawCircle(0, 4, round(myScreen.smallestDimensionSize * 1)-18, newPixelsAreOn, true, true);
+	myScreen.drawText(0, 0, uR""""(
+ ██████.██.......██████...██████.██..██
+██......██......██....██.██......██.██.
+██......██......██....██.██......████..
+ ██████..██████..██████...██████.██.███)"""", true, false);
 	u16string clockStyle = myScreen.contents;
 
-	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.75));
-	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.63));
-	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.5));
+	vector <array<int, 2>> pointsForEighthOfSecond = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.75)-10);
+	vector <array<int, 2>> pointsForEighthOfMinute = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.63)-10);
+	vector <array<int, 2>> pointsForEighthOfHour = getPointsForEighthCircle(round(myScreen.smallestDimensionSize * 0.5)-10);
 
 	array<int, 2> pixelForHour;
 	array<int, 2> pixelForMinute;
@@ -313,9 +327,9 @@ int main() {
 		pixelForHour = calculatePixel(pointsForEighthOfHour, hourOn, true);
 		
 		// draw the hands
-		myScreen.bresignham3D(0, 0, 0, pixelForSecond[0], pixelForSecond[1], 0, newPixelsAreOn, true, true);
-		myScreen.bresignham3D(0, 0, 0, pixelForMinute[0], pixelForMinute[1], 0, newPixelsAreOn, true, true);
-		myScreen.bresignham3D(0, 0, 0, pixelForHour  [0], pixelForHour  [1], 0, newPixelsAreOn, true, true);
+		myScreen.bresignham3D(0, 4, 0, pixelForSecond[0], pixelForSecond[1]+4, 0, newPixelsAreOn, true, true);
+		myScreen.bresignham3D(0, 4, 0, pixelForMinute[0], pixelForMinute[1]+4, 0, newPixelsAreOn, true, true);
+		myScreen.bresignham3D(0, 4, 0, pixelForHour  [0], pixelForHour  [1]+4, 0, newPixelsAreOn, true, true);
 
 		// print and reset Screen
 		myScreen.printMe();

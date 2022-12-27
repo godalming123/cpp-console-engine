@@ -8,12 +8,16 @@ Currently the project has implemented:
  - support turning pixels on and of where each pixel is a mostly perfect square
  - support drawing lines
  - support drawing circles
+ - support multiline text
 
 # Roadmap
 Currently the project plans to implement the following:
  - support colour
  - support terminal screen changing size
  - support keyboard and mouse input
+ - support drawing triangles
+ - support filling circles
+ - support filling triangles
  - support 3D
 
 # Lifecyle
