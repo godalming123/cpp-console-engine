@@ -4,11 +4,11 @@ Allows drawing simple 2D pixels, lines and circles to a terminal.
 
 # Feautures
 Currently the project has implemented:
- - support drawing text
  - support turning pixels on and of where each pixel is a mostly perfect square
  - support drawing lines
  - support drawing circles
  - support multiline text
+ - support moving multiline text
 
 # Roadmap
 Currently the project plans to implement the following:
