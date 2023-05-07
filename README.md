@@ -27,4 +27,4 @@ This is the lifecycle of screens
  - Draw text
  - Print screen
  - Clear screen
- - Dispose of screen (no way to currently do)
+ - Since their are no pointer necarsarry their is no need to dispose of screens

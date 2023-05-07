@@ -180,26 +180,7 @@ class Screen {
 		// draws 8 pixels of a circle from 1 pixel
 		// see: https://lectureloops.com/wp-content/uploads/2021/01/image-5.png
 		void drawCirclePixel(int originx, int originy, int xc, int yc, bool isOn, bool normaliseX, bool normaliseY, char16_t circleBackground, bool drawEdge) {
-			// if (circleBackground != u'n') {
-			// 	std::cout << "before:";
-			// 	std::cout << yc;
-			// 	std::cout << " ";
-			// 	std::cout << xc << std::endl;
-			// 	if ((yc % 2) == 0) {
-			// 		// we need to set the bottom
-			// 		for (int pixelIndex = -xc; pixelIndex < xc+1; pixelIndex++) {setChar(originx + pixelIndex, originy - yc, circleBackground, normaliseX, normaliseY);}
-			// 		for (int pixelIndex = -yc; pixelIndex < yc+1; pixelIndex++) {setChar(originx + pixelIndex, originy + xc-1, circleBackground, normaliseX, normaliseY);}
-			// 	}
-			// 	else {
-			// 		// we need to set the top
-			// 		for (int pixelIndex = -xc; pixelIndex < xc+1; pixelIndex++) {setChar(originx + pixelIndex, originy + yc, circleBackground, normaliseX, normaliseY);}
-			// 		for (int pixelIndex = -yc; pixelIndex < yc+1; pixelIndex++) {setChar(originx - pixelIndex, originy - xc, circleBackground, normaliseX, normaliseY);}
-			// 	}
-			// 	std::cout << "after:";
-			// 	std::cout << yc;
-			// 	std::cout << " ";
-			// 	std::cout << xc << std::endl;
-			// }
+			// TODO: fill in the circle with the circle_background
 			
 			if (drawEdge) {
 				setPix(originx + xc, originy + yc, isOn, normaliseX, normaliseY);
